@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>居家到府體適能 - 個案運動紀錄系統 (動作庫完整優化版)</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        morandi: {
+                            bg: '#F4F1EA',
+                            card: '#FFFFFF',
+                            primary: '#6E7DAB', // 霧藍
+                            primaryHover: '#5A6894',
+                            secondary: '#8C9A8E', // 鼠尾草綠
+                            accent: '#D0A58A', // 暖粉棕
+                            dark: '#4A5568', // 深灰
+                            light: '#EAE6DF',
+                            border: '#E2DDD5',
+                            danger: '#C87D75'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F4F1EA;
+            font-family: 'Noto Sans TC', 'Inter', sans-serif;
+            color: #4A5568;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F4F1EA;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #C5BDAD;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A39B8B;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+<header class="bg-morandi-card border-b border-morandi-border sticky top-0 z-30 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div class="flex items-center space-x-3">
+            <div class="bg-morandi-primary p-2.5 rounded-xl text-white shadow-sm">
+                <i data-lucide="activity" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-morandi-dark tracking-wide">居家到府體適能</h1>
+                <p class="text-xs text-gray-500">高齡與復健個案運動紀錄系統 v2.2 (推/拉/垂直向完整版)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+            <button onclick="resetForm()" class="px-3 py-2 text-xs font-medium text-gray-600 hover:text-morandi-danger transition-colors flex items-center gap-1 rounded-lg hover:bg-red-50">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 清空內容
+            </button>
+            <button onclick="generateLineReport()" class="px-4 py-2 bg-morandi-secondary hover:bg-opacity-90 text-white rounded-xl shadow-sm text-sm font-medium transition-all flex items-center gap-1.5">
+                <i data-lucide="message-square" class="w-4 h-4"></i> LINE 報告
+            </button>
+            <button onclick="openCanvasModal()" class="px-4 py-2 bg-morandi-primary hover:bg-morandi-primaryHover text-white rounded-xl shadow-sm text-sm font-medium transition-all flex items-center gap-1.5">
+                <i data-lucide="image" class="w-4 h-4"></i> 產生 9:16 大字圖卡
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+
+    <div class="md:col-span-5 space-y-6">
+        
+        <!-- 快速選取與新增個案卡片 -->
+        <div class="bg-morandi-card p-5 rounded-2xl border border-morandi-border shadow-sm space-y-3">
+            <div class="flex justify-between items-center border-b border-morandi-border pb-2">
+                <h2 class="text-sm font-bold text-morandi-dark flex items-center gap-1.5">
+                    <i data-lucide="users" class="w-4 h-4 text-morandi-primary"></i> 服務個案列表
+                </h2>
+                <button onclick="openAddClientModal()" class="text-xs text-morandi-primary font-bold hover:underline flex items-center gap-1">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + 新增個案
+                </button>
+            </div>
+            <div id="clientQuickButtons" class="grid grid-cols-3 gap-2">
+                <!-- 動態由 JS 帶入個案選擇按鈕 -->
+            </div>
+        </div>
+
+        <!-- 個案基本資料卡片 -->
+        <div class="bg-morandi-card p-5 rounded-2xl border border-morandi-border shadow-sm space-y-4">
+            <h2 class="text-base font-bold text-morandi-dark border-b border-morandi-border pb-2 flex items-center gap-2">
+                <i data-lucide="user-check" class="w-5 h-5 text-morandi-primary"></i> 個案基本資料
+            </h2>
+            
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">個案姓名/稱呼</label>
+                        <input type="text" id="clientName" value="林陳奶奶" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-morandi-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">年齡 / 性別</label>
+                        <input type="text" id="clientAgeGender" value="82 歲 / 女" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-morandi-primary">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">指導教練</label>
+                        <input type="text" id="coachName" value="小凱教練" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-morandi-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">訓練日期</label>
+                        <input type="date" id="recordDate" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-morandi-primary">
+                    </div>
+                </div>
+
+                <!-- 常見疾病標籤（點擊會取代無過去病史） -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center justify-between">
+                        <span>主要過去病史 (PMH) 快捷標籤</span>
+                        <span class="text-[10px] text-morandi-accent font-medium">點擊加減標籤</span>
+                    </label>
+                    <div id="diseaseTagsContainer" class="flex flex-wrap gap-1.5 mb-2">
+                        <!-- JS 動態生成病史標籤按鈕 -->
+                    </div>
+                    <textarea id="medicalHistory" rows="2" class="w-full bg-morandi-bg border border-morandi-border rounded-lg p-2.5 text-xs text-gray-700 focus:outline-none focus:border-morandi-primary" placeholder="可手動修改或補充病史細節...">高血壓、退化性膝關節炎、骨質疏鬆症</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">本次課表訓練重點</label>
+                    <input type="text" id="focusPoint" value="下肢肌力強化、下肢關節防護與站立平衡穩定" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-morandi-primary">
+                </div>
+            </div>
+        </div>
+
+        <!-- 現場照片上傳與 Google Drive 連結 -->
+        <div class="bg-morandi-card p-5 rounded-2xl border border-morandi-border shadow-sm space-y-3">
+            <div class="flex justify-between items-center border-b border-morandi-border pb-2">
+                <h2 class="text-base font-bold text-morandi-dark flex items-center gap-2">
+                    <i data-lucide="camera" class="w-5 h-5 text-morandi-secondary"></i> 訓練側拍與雲端照片
+                </h2>
+                <span class="text-xs text-gray-400" id="photoCount">0 張</span>
+            </div>
+
+            <!-- Google Drive 連結輸入區 -->
+            <div class="space-y-1.5 bg-morandi-bg p-3 rounded-xl border border-morandi-border">
+                <label class="block text-xs font-medium text-morandi-dark flex items-center gap-1">
+                    <i data-lucide="link" class="w-3.5 h-3.5 text-morandi-primary"></i> Google Drive / 雲端相片連結
+                </label>
+                <div class="flex gap-2">
+                    <input type="text" id="gdriveInput" placeholder="貼上 Google Drive 或雲端圖片網址..." class="flex-1 bg-white border border-morandi-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-morandi-primary">
+                    <button onclick="addGDriveLink()" class="px-3 py-1.5 bg-morandi-primary text-white rounded-lg text-xs font-medium hover:bg-morandi-primaryHover transition-all shrink-0">
+                        加入
+                    </button>
+                </div>
+                <p class="text-[10px] text-gray-400">💡 提示：若有填寫雲端網址，LINE 報告中將自動帶入該連結。</p>
+            </div>
+
+            <!-- 本地圖片上傳區域 -->
+            <div class="flex flex-col items-center justify-center border-2 border-dashed border-morandi-border hover:border-morandi-primary rounded-xl p-3 bg-morandi-bg/50 transition-all cursor-pointer relative" onclick="document.getElementById('multiPhotoInput').click()">
+                <input type="file" id="multiPhotoInput" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event)">
+                <div class="text-center space-y-1 py-1">
+                    <i data-lucide="upload-cloud" class="w-6 h-6 text-morandi-primary mx-auto"></i>
+                    <p class="text-xs font-medium text-gray-600">點擊選擇本地圖片 (可複選)</p>
+                </div>
+            </div>
+
+            <!-- 預覽縮圖網格 -->
+            <div id="photosGrid" class="grid grid-cols-3 gap-2 pt-1">
+                <!-- 動態縮圖列表 -->
+            </div>
+        </div>
+
+    </div>
+
+    <div class="md:col-span-7 space-y-6">
+
+        <!-- 訓練項目規劃與紀錄 -->
+        <div class="bg-morandi-card p-5 rounded-2xl border border-morandi-border shadow-sm space-y-4">
+            <div class="flex justify-between items-center border-b border-morandi-border pb-2">
+                <h2 class="text-base font-bold text-morandi-dark flex items-center gap-2">
+                    <i data-lucide="dumbbell" class="w-5 h-5 text-morandi-primary"></i> 訓練項目規劃 (Training Items)
+                </h2>
+                <span class="text-xs text-gray-500">已選擇 <b id="exerciseCount" class="text-morandi-primary">0</b> 項</span>
+            </div>
+
+            <!-- 運動類別切換 Tabs -->
+            <div class="flex flex-wrap gap-1.5 p-1 bg-morandi-bg rounded-xl text-xs border border-morandi-border" id="categoryTabs">
+                <button onclick="switchCategory('lower')" class="category-btn active px-3 py-1.5 rounded-lg font-medium transition-all bg-morandi-primary text-white shadow-sm" data-cat="lower">下肢肌力</button>
+                <button onclick="switchCategory('upper')" class="category-btn px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:text-morandi-dark transition-all" data-cat="upper">上肢肌力</button>
+                <button onclick="switchCategory('back')" class="category-btn px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:text-morandi-dark transition-all" data-cat="back">背部與核心</button>
+                <button onclick="switchCategory('core')" class="category-btn px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:text-morandi-dark transition-all" data-cat="core">平衡控制</button>
+                <button onclick="switchCategory('cardio')" class="category-btn px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:text-morandi-dark transition-all" data-cat="cardio">有氧/功能</button>
+                <button onclick="switchCategory('kettlebell')" class="category-btn px-3 py-1.5 rounded-lg font-medium text-gray-600 hover:text-morandi-dark transition-all" data-cat="kettlebell">壺鈴專項</button>
+            </div>
+
+            <!-- 預設快捷選項按鈕區 -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-xs text-gray-400">點擊快速加入今日課表：</p>
+                    <button onclick="openAddCategoryItemModal()" class="text-xs text-morandi-primary font-bold hover:underline flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增預設動作至此類別
+                    </button>
+                </div>
+                <div id="quickExerciseButtons" class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1 border border-morandi-border/60 rounded-xl bg-morandi-bg/30">
+                    <!-- JS 動態渲染快速按鈕 -->
+                </div>
+            </div>
+
+            <!-- 已選運動項目清單 -->
+            <div class="space-y-3 pt-2">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">今日訓練清單</h3>
+                    <button onclick="addCustomExercise()" class="text-xs text-morandi-primary font-medium hover:underline flex items-center gap-1">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增單次臨時項目
+                    </button>
+                </div>
+
+                <div id="selectedExercisesList" class="space-y-3 max-h-[440px] overflow-y-auto pr-1">
+                    <!-- 動態渲染項目 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 教練友善叮嚀 -->
+        <div class="bg-morandi-card p-5 rounded-2xl border border-morandi-border shadow-sm space-y-3">
+            <div class="flex justify-between items-center border-b border-morandi-border pb-2">
+                <h2 class="text-base font-bold text-morandi-dark flex items-center gap-2">
+                    <i data-lucide="heart-handshake" class="w-5 h-5 text-morandi-secondary"></i> 教練友善叮嚀
+                </h2>
+                <div class="flex gap-1.5">
+                    <button onclick="openAddCoachAdviceModal()" class="px-2.5 py-1 bg-morandi-bg hover:bg-morandi-light text-morandi-primary border border-morandi-border rounded-lg text-xs font-medium transition-all flex items-center gap-1 shadow-2xs">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增常用標籤
+                    </button>
+                    <button onclick="autoImportHomework()" class="px-2.5 py-1 bg-morandi-bg hover:bg-morandi-light text-morandi-primary border border-morandi-border rounded-lg text-xs font-medium transition-all flex items-center gap-1 shadow-2xs">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-morandi-accent"></i> 帶入今日項目
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 常用教練叮嚀快捷標籤列 -->
+            <div>
+                <p class="text-xs text-gray-400 mb-1.5">點擊快捷標籤將內容加入叮嚀：</p>
+                <div id="adviceTagsContainer" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1 bg-morandi-bg/40 border border-morandi-border/60 rounded-xl">
+                    <!-- JS 動態生成叮嚀標籤按鈕 -->
+                </div>
+            </div>
+
+            <textarea id="homeworkText" rows="4" class="w-full bg-morandi-bg border border-morandi-border rounded-xl p-3 text-sm focus:outline-none focus:border-morandi-primary" placeholder="例如：&#10;1. 訓練後請多補充水分與蛋白質。&#10;2. 走路時保持腰背挺直、注意步態平衡。"></textarea>
+        </div>
+
+    </div>
+
+</main>
+
+<!-- Modal 1: 新增個案彈窗 -->
+<div id="addClientModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-morandi-card rounded-2xl max-w-md w-full p-6 border border-morandi-border shadow-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-morandi-border pb-3">
+            <h3 class="text-base font-bold text-morandi-dark flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-5 h-5 text-morandi-primary"></i> 新增個案資料
+            </h3>
+            <button onclick="closeAddClientModal()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-gray-600 mb-1">個案姓名</label>
+                    <input type="text" id="newClientName" placeholder="如：陳阿公" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-1">年齡 / 性別</label>
+                    <input type="text" id="newClientAgeGender" placeholder="如：78 歲 / 男" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+                </div>
+            </div>
+            <div>
+                <label class="block text-gray-600 mb-1">指導教練</label>
+                <input type="text" id="newClientCoach" value="小凱教練" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+            </div>
+            <div>
+                <label class="block text-gray-600 mb-1">主要過去病史 (PMH)</label>
+                <textarea id="newClientMedical" rows="2" placeholder="如：帕金森氏症、高血壓..." class="w-full bg-morandi-bg border border-morandi-border rounded-lg p-2 focus:outline-none focus:border-morandi-primary"></textarea>
+            </div>
+            <div>
+                <label class="block text-gray-600 mb-1">訓練重點與目標</label>
+                <input type="text" id="newClientFocus" placeholder="如：步態調整、預防跌倒" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+            <button onclick="closeAddClientModal()" class="px-4 py-2 text-xs text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
+            <button onclick="saveNewClient()" class="px-4 py-2 bg-morandi-primary hover:bg-morandi-primaryHover text-white rounded-xl text-xs font-medium shadow-sm">新增並帶入</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: 新增特定類別預設動作彈窗 -->
+<div id="addCategoryItemModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-morandi-card rounded-2xl max-w-md w-full p-6 border border-morandi-border shadow-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-morandi-border pb-3">
+            <h3 class="text-base font-bold text-morandi-dark flex items-center gap-2">
+                <i data-lucide="plus-square" class="w-5 h-5 text-morandi-primary"></i> 新增永久預設動作 (<span id="modalCategoryTitle" class="text-morandi-primary">下肢</span>)
+            </h3>
+            <button onclick="closeAddCategoryItemModal()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-3 text-xs">
+            <div>
+                <label class="block text-gray-600 mb-1">動作名稱</label>
+                <input type="text" id="newItemName" placeholder="例如：壺鈴高腳杯深蹲 / 彈力帶側平舉" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="block text-gray-600 mb-1">預設組數</label>
+                    <input type="text" id="newItemSets" value="4" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-1">預設次數/時間</label>
+                    <input type="text" id="newItemReps" value="10-12次" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-1">負重模式</label>
+                    <select id="newItemLoadType" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-1.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+                        <option value="自重">自重</option>
+                        <option value="抗阻力" selected>抗阻力</option>
+                        <option value="輔助">輔助</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-gray-600 mb-1">預設負重/器材規格</label>
+                <input type="text" id="newItemLoadValue" placeholder="例如：6kg 壺鈴 / 黃色彈力帶" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+            </div>
+            <div>
+                <label class="block text-gray-600 mb-1">指導要點 / 注意事項 (提示文字)</label>
+                <input type="text" id="newItemNote" placeholder="例如：保持脊椎挺直，下蹲時膝蓋不內收" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+            </div>
+            <p class="text-[10px] text-gray-400 bg-morandi-bg p-2 rounded-lg">✨ 新增後的動作將永久記憶於系統中，下次使用時無需再次重複輸入。</p>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+            <button onclick="closeAddCategoryItemModal()" class="px-4 py-2 text-xs text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
+            <button onclick="saveCategoryItem()" class="px-4 py-2 bg-morandi-primary hover:bg-morandi-primaryHover text-white rounded-xl text-xs font-medium shadow-sm">新增並永久儲存</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 3: 新增常用教練叮嚀標籤彈窗 -->
+<div id="addCoachAdviceModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-morandi-card rounded-2xl max-w-md w-full p-6 border border-morandi-border shadow-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-morandi-border pb-3">
+            <h3 class="text-base font-bold text-morandi-dark flex items-center gap-2">
+                <i data-lucide="bookmark-plus" class="w-5 h-5 text-morandi-primary"></i> 新增常用叮嚀標籤
+            </h3>
+            <button onclick="closeAddCoachAdviceModal()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-3 text-xs">
+            <div>
+                <label class="block text-gray-600 mb-1">標籤名稱 / 叮嚀短語</label>
+                <input type="text" id="newAdviceText" placeholder="例如：保持體能維持習慣、運動後伸展 10 分鐘" class="w-full bg-morandi-bg border border-morandi-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-morandi-primary">
+            </div>
+            <p class="text-[10px] text-gray-400 bg-morandi-bg p-2 rounded-lg">✨ 新增的常用叮嚀標籤會自動記錄儲存，未來點擊即可快速帶入叮嚀欄位。</p>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+            <button onclick="closeAddCoachAdviceModal()" class="px-4 py-2 text-xs text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
+            <button onclick="saveNewCoachAdviceTag()" class="px-4 py-2 bg-morandi-primary hover:bg-morandi-primaryHover text-white rounded-xl text-xs font-medium shadow-sm">儲存標籤</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 4: LINE 報告 Modal -->
+<div id="lineReportModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-morandi-card rounded-2xl max-w-lg w-full p-6 border border-morandi-border shadow-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-morandi-border pb-3">
+            <h3 class="text-lg font-bold text-morandi-dark flex items-center gap-2">
+                <i data-lucide="message-square" class="w-5 h-5 text-morandi-secondary"></i> LINE 課後紀錄文字檔
+            </h3>
+            <button onclick="closeLineModal()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <textarea id="lineReportText" readonly class="w-full h-80 bg-morandi-bg border border-morandi-border rounded-xl p-3 text-sm font-mono text-gray-700 focus:outline-none resize-none"></textarea>
+
+        <div class="flex justify-end gap-3 pt-2">
+            <button onclick="closeLineModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">關閉</button>
+            <button onclick="copyLineReport()" class="px-4 py-2 bg-morandi-secondary hover:bg-opacity-90 text-white rounded-xl text-sm font-medium flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="copy" class="w-4 h-4"></i> 複製內容
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 5: Canvas 9:16 圖卡 Modal (高解析度 2K 版) -->
+<div id="canvasModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+    <div class="bg-morandi-card rounded-2xl max-w-lg w-full p-5 border border-morandi-border shadow-2xl space-y-4 my-6">
+        <div class="flex justify-between items-center border-b border-morandi-border pb-3">
+            <div>
+                <h3 class="text-lg font-bold text-morandi-dark flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-morandi-primary"></i> 9:16 高清大字優化圖卡
+                </h3>
+                <p class="text-xs text-gray-400 mt-0.5">專為手機螢幕閱覽優化、高解析度 2K 導出</p>
+            </div>
+            <button onclick="closeCanvasModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- 圖卡風格切換列 -->
+        <div class="flex items-center justify-between bg-morandi-bg p-2 rounded-xl border border-morandi-border text-xs">
+            <span class="text-gray-500 font-medium pl-1">圖卡配色主題：</span>
+            <div class="flex gap-1.5">
+                <button onclick="changeCanvasTheme('classic')" id="themeBtn-classic" class="px-2.5 py-1 rounded-lg text-xs font-medium border border-morandi-primary bg-morandi-primary text-white transition-all">經典霧藍</button>
+                <button onclick="changeCanvasTheme('sage')" id="themeBtn-sage" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-600 bg-white border border-morandi-border transition-all hover:bg-gray-50">鼠尾草綠</button>
+                <button onclick="changeCanvasTheme('warm')" id="themeBtn-warm" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-600 bg-white border border-morandi-border transition-all hover:bg-gray-50">暖陽粉棕</button>
+            </div>
+        </div>
+
+        <!-- Canvas 預覽畫布 (1080x1920) -->
+        <div class="flex justify-center bg-gray-900/5 rounded-xl p-3 border border-morandi-border">
+            <canvas id="recordCanvas" width="1080" height="1920" class="max-h-[60vh] w-auto shadow-lg rounded-lg border border-white/40 transition-all"></canvas>
+        </div>
+
+        <div class="flex justify-between items-center pt-1">
+            <p class="text-[11px] text-gray-400">💡 提示：按右鍵亦可直接複製圖片發送至 LINE</p>
+            <div class="flex gap-2">
+                <button onclick="closeCanvasModal()" class="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-xl">關閉</button>
+                <button onclick="downloadCanvasImage()" class="px-5 py-2.5 bg-morandi-primary hover:bg-morandi-primaryHover text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-all">
+                    <i data-lucide="download" class="w-4 h-4"></i> 下載 2K 高清圖卡
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 預設常見疾病標籤庫
+    const commonDiseasesList = [
+        "高血壓", "第2型糖尿病", "骨質疏鬆症", "退化性膝關節炎", 
+        "人工膝關節置換(TKA)", "腰椎手術史/椎間盤突出", "帕金森氏症", 
+        "腦中風後遺症", "肌少症", "跌倒高風險", "心臟病/裝支架", "高血脂"
+    ];
+
+    // 預設教練友善叮嚀常用標籤庫
+    const defaultCoachAdviceTags = [
+        "注意步態與平衡", "補充水分與休息", "維持日常運動習慣",
+        "運動後適度伸展", "走路保持姿勢挺直", "椅子起立注意腳步踏平",
+        "運動中若頭暈請輪流休息", "注意膝蓋不內收"
+    ];
+
+    let customCoachAdviceTags = [];
+
+    // 預設僅留一個個案 (林陳奶奶)
+    const initialClientDatabase = [
+        {
+            id: 'client1',
+            name: '林陳奶奶',
+            ageGender: '82 歲 / 女',
+            coach: '小凱教練',
+            medicalHistory: '高血壓、退化性膝關節炎、骨質疏鬆症',
+            focusPoint: '下肢肌力強化、關節防護與站立平衡穩定',
+            homework: '1. 注意步態與平衡，起身時動作放緩。\n2. 每日補充充足水分，運動後可進行腿部適度伸展放鬆。\n3. 練習椅子起立時保持雙腳踏平。',
+            defaultExercises: [
+                { id: 101, name: "椅子起立坐下 (Chair Squat)", sets: "4", reps: "10-12次", loadType: "自重", loadValue: "徒手", note: "注意膝蓋不內收，站起時吐氣" },
+                { id: 102, name: "坐姿彈力帶划船 (Row)", sets: "4", reps: "12次", loadType: "抗阻力", loadValue: "黃色低彈力帶", note: "背部發力，勿聳肩" }
+            ]
+        }
+    ];
+
+    let clientDatabase = [];
+
+    const baseExerciseDatabase = {
+        lower: [
+            { id: "base_lower_1", name: "椅子起立坐下 (Chair Squat)", sets: "4", reps: "10-12次", loadType: "自重", loadValue: "徒手", note: "【垂直下蹲】注意膝蓋不內收，站起時吐氣" },
+            { id: "base_lower_2", name: "分腿蹲 (Split Squat)", sets: "4", reps: "8-10次/側", loadType: "輔助", loadValue: "扶椅協助", note: "【單側垂直蹲】保持軀幹挺直，後腳膝蓋輕觸地" },
+            { id: "base_lower_3", name: "高腳杯深蹲 (Goblet Squat)", sets: "4", reps: "10次", loadType: "抗阻力", loadValue: "4-6kg啞鈴/壺鈴", note: "【垂直載荷】雙手持重於胸前，維持脊椎中立" },
+            { id: "base_lower_4", name: "保加利亞分腿蹲 (Bulgarian Squat)", sets: "4", reps: "8次/側", loadType: "自重", loadValue: "後腳抬高", note: "【單側下蹲】著重前腳股四頭肌與臀大肌" },
+            { id: "base_lower_5", name: "羅馬尼亞硬舉 (RDL)", sets: "4", reps: "10-12次", loadType: "抗阻力", loadValue: "輕量啞鈴/彈力帶", note: "【下肢髖拉】微屈膝，微傾軀幹感受膕繩肌延伸" },
+            { id: "base_lower_6", name: "單腳硬舉 (Single Leg RDL)", sets: "4", reps: "8次/側", loadType: "輔助", loadValue: "扶椅備用", note: "【單側髖拉】骨盆保持水平，強化本體感覺" },
+            { id: "base_lower_7", name: "側向步態與彈力圈", sets: "4", reps: "12步/往返", loadType: "抗阻力", loadValue: "輕度彈力圈", note: "微蹲保持核心穩定，外展肌群發力" },
+            { id: "base_lower_8", name: "提踵練習 (Calf Raise)", sets: "4", reps: "15次", loadType: "自重", loadValue: "徒手", note: "【垂直伸踝】頂峰停留1秒，著重踝關節穩定" },
+            { id: "base_lower_9", name: "站姿側抬腿 (Hip Abduction)", sets: "4", reps: "12次/側", loadType: "抗阻力", loadValue: "腳踝彈力帶", note: "軀幹不側傾，強化臀中肌穩定骨盆" },
+            { id: "base_lower_10", name: "坐姿伸膝 (Leg Extension)", sets: "4", reps: "12-15次", loadType: "抗阻力", loadValue: "沙包/彈力帶", note: "頂峰收縮股四頭肌，維持2秒" },
+            { id: "base_lower_11", name: "站姿後踢腿 (Glute Kickback)", sets: "4", reps: "12次/側", loadType: "自重", loadValue: "徒手", note: "臀大肌發力，下背不代償拱起" }
+        ],
+        upper: [
+            { id: "base_upper_1", name: "牆壁俯臥撐 (Wall Push-up)", sets: "4", reps: "10-12次", loadType: "自重", loadValue: "徒手", note: "【水平推】身體保持直線，胸肌與三頭肌發力" },
+            { id: "base_upper_2", name: "彈力帶胸推 (Chest Press)", sets: "4", reps: "12次", loadType: "抗阻力", loadValue: "黃色低彈力帶", note: "【水平推】肩胛骨後收固定，前推時吐氣" },
+            { id: "base_upper_3", name: "仰臥啞鈴胸推 (Floor Press)", sets: "4", reps: "10-12次", loadType: "抗阻力", loadValue: "1-2kg 啞鈴", note: "【水平推】安全臥地推舉，保護肩關節" },
+            { id: "base_upper_4", name: "坐姿啞鈴肩推 (Shoulder Press)", sets: "4", reps: "10次", loadType: "抗阻力", loadValue: "1kg 啞鈴", note: "【垂直推】維持肋骨下壓，不沉肩夾背或過度仰頭" },
+            { id: "base_upper_5", name: "彈力帶垂直過頭推 (Overhead Press)", sets: "4", reps: "10-12次", loadType: "抗阻力", loadValue: "輕量彈力帶", note: "【垂直推】踩帶向上推舉，訓練三角肌前中束" },
+            { id: "base_upper_6", name: "坐姿彈力帶划船 (Seated Row)", sets: "4", reps: "12次", loadType: "抗阻力", loadValue: "紅色中彈力帶", note: "【水平拉】感受背肌夾緊，手肘貼近軀幹" },
+            { id: "base_upper_7", name: "單臂俯身划船 (Single Arm Row)", sets: "4", reps: "10次/側", loadType: "抗阻力", loadValue: "2kg 啞鈴", note: "【水平拉】單手扶椅支撐，不扭轉脊椎" },
+            { id: "base_upper_8", name: "彈力帶下拉 (Lat Pulldown)", sets: "4", reps: "12次", loadType: "抗阻力", loadValue: "彈力帶高掛", note: "【垂直拉】啟動廣背肌，將手肘拉向身體兩側" },
+            { id: "base_upper_9", name: "直臂過頭拉回 (Straight Arm Pulldown)", sets: "4", reps: "12次", loadType: "抗阻力", loadValue: "彈力帶", note: "【垂直拉】雙臂伸直下壓至髖部，強化上背" },
+            { id: "base_upper_10", name: "彈力帶肩外旋 (External Rotation)", sets: "4", reps: "15次/側", loadType: "抗阻力", loadValue: "極輕彈力帶", note: "手肘貼緊肋骨，強化旋轉肌袖" },
+            { id: "base_upper_11", name: "坐姿二頭彎舉 (Bicep Curl)", sets: "4", reps: "12次", loadType: "抗阻力", loadValue: "1.5kg 啞鈴", note: "上臂固定，穩定收縮二頭肌" },
+            { id: "base_upper_12", name: "椅背三頭肌伸展 (Triceps Ext.)", sets: "4", reps: "12次", loadType: "抗阻力", loadValue: "彈力帶", note: "【垂直推/伸展】手肘固定，後推伸展三頭肌" }
+        ],
+        back: [
+            { id: "base_back_1", name: "鳥狗式 (Bird-Dog)", sets: "4", reps: "8次/側", loadType: "自重", loadValue: "徒手", note: "【對角肢體伸展】骨盆保持平行，對側手腳延伸" },
+            { id: "base_back_2", name: "橋式 (Glute Bridge)", sets: "4", reps: "12次", loadType: "自重", loadValue: "徒手", note: "【後側鍊拉】臀部發力頂起，下背勿過度拱起" },
+            { id: "base_back_3", name: "Y-T-W 肩胛姿態穩定", sets: "4", reps: "10次/動作", loadType: "自重", loadValue: "徒手/輕啞鈴", note: "【上背垂直/水平拉】誘發上背與後肩肌群" },
+            { id: "base_back_4", name: "死蟲式 (Dead Bug)", sets: "4", reps: "10次/側", loadType: "自重", loadValue: "徒手", note: "【抗伸展核心】下背貼緊地面，緩慢呼吸控制" },
+            { id: "base_back_5", name: "棒式 (Plank)", sets: "4", reps: "20-30秒", loadType: "自重", loadValue: "徒手/肘撐", note: "【等長核心】頭、背、臀呈一直線，不塌腰" },
+            { id: "base_back_6", name: "側棒式 (Side Plank)", sets: "4", reps: "15-20秒/側", loadType: "輔助", loadValue: "膝蓋著地", note: "【抗側屈核心】強化腹斜肌與側軀幹穩定" },
+            { id: "base_back_7", name: "貓狗式脊椎動員 (Cat-Cow)", sets: "4", reps: "10次", loadType: "自重", loadValue: "徒手", note: "【脊椎屈伸】溫和增加脊椎關節活動度" },
+            { id: "base_back_8", name: "趴姿飛燕式 (Superman Hold)", sets: "4", reps: "8次", loadType: "自重", loadValue: "短暫停頓2秒", note: "【後側伸展】誘發豎脊肌與臀肌啟動" }
+        ],
+        core: [
+            { id: "base_core_1", name: "單腳站立平衡 (Single-leg)", sets: "4", reps: "20-30秒/側", loadType: "輔助", loadValue: "扶椅備用", note: "【單側支撐】視線看前方固定點，訓練本體感覺" },
+            { id: "base_core_2", name: "前後對齊直線站立 (Tandem)", sets: "4", reps: "30秒/換腳", loadType: "自重", loadValue: "徒手", note: "【窄基底平衡】腳跟對腳尖，模擬狹窄路徑" },
+            { id: "base_core_3", name: "軟墊本體感覺平衡 (Pad)", sets: "4", reps: "30秒/組", loadType: "輔助", loadValue: "平衡墊", note: "【不穩定平面】增加踝關節微調反應力" },
+            { id: "base_core_4", name: "動態跨障礙步態", sets: "4", reps: "6趟/往返", loadType: "自重", loadValue: "小瑜伽磚", note: "【動態平衡】提高抬腳高度，預防跌倒絆倒" },
+            { id: "base_core_5", name: "星形單腳伸展平衡 (Star Ex.)", sets: "4", reps: "5圈/側", loadType: "輔助", loadValue: "扶椅備用", note: "【多維度平衡】單腳支撐，另一腳多方向延伸" },
+            { id: "base_core_6", name: "雙手交替邊走邊拍球", sets: "4", reps: "1分鐘", loadType: "自重", loadValue: "小皮球", note: "【雙重任務】手眼協調結合動態步態控制" },
+            { id: "base_core_7", name: "坐姿抗旋轉推壓 (Pallof Press)", sets: "4", reps: "10次/側", loadType: "抗阻力", loadValue: "彈力帶", note: "【抗旋轉核心】抵抗側向拉力，維持軀幹中立" }
+        ],
+        cardio: [
+            { id: "base_cardio_1", name: "踏板階梯運動 (Step-up)", sets: "4", reps: "2分鐘", loadType: "輔助", loadValue: "15cm踏板", note: "【垂直登階】保持穩定節奏，抬頭挺胸" },
+            { id: "base_cardio_2", name: "敏捷梯多向步態", sets: "4", reps: "5趟", loadType: "自重", loadValue: "徒手", note: "【步態協調】著重腳步敏捷度與防跌應變" },
+            { id: "base_cardio_3", name: "坐姿藥球拋接/轉體", sets: "4", reps: "15次", loadType: "抗阻力", loadValue: "2kg藥球", note: "【旋轉與爆發】訓練反應力與核心旋轉穩定" },
+            { id: "base_cardio_4", name: "原地踏步高抬腿 (High Knee)", sets: "4", reps: "1分鐘", loadType: "自重", loadValue: "徒手", note: "【心肺循環】配合雙臂擺動，提升心肺適能" },
+            { id: "base_cardio_5", name: "繩梯側向交錯步", sets: "4", reps: "4趟", loadType: "自重", loadValue: "敏捷繩梯", note: "【側向敏捷】強化側向移動與神經肌肉傳導" },
+            { id: "base_cardio_6", name: "站姿戰鬥繩波浪 (Battling Ropes)", sets: "4", reps: "20秒", loadType: "抗阻力", loadValue: "輕量戰鬥繩", note: "【全身心肺】上下交替揮繩，啟動上肢與核心" }
+        ],
+        kettlebell: [
+            { id: "base_kb_1", name: "壺鈴高腳杯深蹲 (Goblet)", sets: "4", reps: "8-10次", loadType: "抗阻力", loadValue: "6kg 壺鈴", note: "【垂直下蹲】雙手持壺於胸前，下蹲保持脊椎挺直" },
+            { id: "base_kb_2", name: "壺鈴硬舉 (Deadlift)", sets: "4", reps: "10-12次", loadType: "抗阻力", loadValue: "8kg 壺鈴", note: "【下肢髖拉】髖關節鉸鏈發力，保持脊椎中立不彎腰" },
+            { id: "base_kb_3", name: "壺鈴擺盪 (Swing)", sets: "4", reps: "12-15次", loadType: "抗阻力", loadValue: "6kg 壺鈴", note: "【下肢爆發拉】強調髖部爆發力推出，非手臂拉抬" },
+            { id: "base_kb_4", name: "壺鈴單臂划船 (Single Arm Row)", sets: "4", reps: "10次/側", loadType: "抗阻力", loadValue: "6kg 壺鈴", note: "【水平拉】單手扶椅維持脊椎穩定，手肘後抬" },
+            { id: "base_kb_5", name: "壺鈴持壺農夫走 (Farmer Carry)", sets: "4", reps: "30秒/趟", loadType: "抗阻力", loadValue: "4-6kg 壺鈴", note: "【垂直載荷行走】對抗軀幹側彎，強化核心與握力" },
+            { id: "base_kb_6", name: "壺鈴過頭上舉 (Overhead Press)", sets: "4", reps: "8次/側", loadType: "抗阻力", loadValue: "4kg 壺鈴", note: "【垂直推】核心收緊，壺鈴由胸前直向上推" },
+            { id: "base_kb_7", name: "壺鈴提壺側彎 (Side Bend)", sets: "4", reps: "10-12次/側", loadType: "抗阻力", loadValue: "4kg 壺鈴", note: "【側屈控制】單手持壺，骨盆固定，側面軀幹拉回" }
+        ]
+    };
+
+    let customCategoryDatabase = {}; 
+    let selectedExercises = [];
+    let uploadedPhotos = []; 
+    let gdriveLinks = []; 
+    let currentCategory = 'lower';
+    let currentCanvasTheme = 'classic';
+
+    const categoryNames = {
+        lower: '下肢肌力',
+        upper: '上肢肌力',
+        back: '背部與核心',
+        core: '平衡控制',
+        cardio: '有氧/功能',
+        kettlebell: '壺鈴專項'
+    };
+
+    const themePalettes = {
+        classic: {
+            headerBg: '#6E7DAB',
+            headerSub: '#EAE6DF',
+            cardBg: '#FFFFFF',
+            cardBorder: '#E2DDD5',
+            primaryText: '#4A5568',
+            accentText: '#C87D75',
+            badgeBg: '#F4F1EA',
+            badgeText: '#5A6894',
+            homeworkHeader: '#8C9A8E'
+        },
+        sage: {
+            headerBg: '#6B8E7D',
+            headerSub: '#E8EFEA',
+            cardBg: '#FFFFFF',
+            cardBorder: '#D8E2DC',
+            primaryText: '#3B4A3F',
+            accentText: '#C87D75',
+            badgeBg: '#F2F6F3',
+            badgeText: '#517260',
+            homeworkHeader: '#6E7DAB'
+        },
+        warm: {
+            headerBg: '#C28D75',
+            headerSub: '#FBF2EE',
+            cardBg: '#FFFFFF',
+            cardBorder: '#EBE0DA',
+            primaryText: '#4E3D35',
+            accentText: '#B85B50',
+            badgeBg: '#FAF5F2',
+            badgeText: '#A36851',
+            homeworkHeader: '#8C9A8E'
+        }
+    };
+
+    window.onload = function() {
+        document.getElementById('recordDate').valueAsDate = new Date();
+        loadClientsFromStorage();
+        loadCustomExercisesFromStorage();
+        loadCustomCoachAdviceTagsFromStorage();
+        renderDiseaseTags();
+        renderCoachAdviceTags();
+        renderClientQuickButtons();
+        
+        if (clientDatabase.length > 0) {
+            selectClient(clientDatabase[0].id);
+        }
+        
+        renderQuickButtons('lower');
+        lucide.createIcons();
+    };
+
+    // --- LocalStorage 讀取與寫入 ---
+    function loadClientsFromStorage() {
+        try {
+            const stored = localStorage.getItem('fitness_client_database');
+            if (stored) {
+                clientDatabase = JSON.parse(stored);
+            } else {
+                clientDatabase = JSON.parse(JSON.stringify(initialClientDatabase));
+                saveClientsToStorage();
+            }
+        } catch(e) {
+            console.error("無法讀取個案資料", e);
+            clientDatabase = JSON.parse(JSON.stringify(initialClientDatabase));
+        }
+    }
+
+    function saveClientsToStorage() {
+        try {
+            localStorage.setItem('fitness_client_database', JSON.stringify(clientDatabase));
+        } catch(e) {
+            console.error("無法寫入個案資料", e);
+        }
+    }
+
+    function loadCustomExercisesFromStorage() {
+        try {
+            const stored = localStorage.getItem('fitness_custom_exercises');
+            if (stored) customCategoryDatabase = JSON.parse(stored);
+        } catch(e) {
+            console.error("無法讀取 localStorage", e);
+            customCategoryDatabase = {};
+        }
+    }
+
+    function saveCustomExercisesToStorage() {
+        try {
+            localStorage.setItem('fitness_custom_exercises', JSON.stringify(customCategoryDatabase));
+        } catch(e) {
+            console.error("無法寫入 localStorage", e);
+        }
+    }
+
+    function loadCustomCoachAdviceTagsFromStorage() {
+        try {
+            const stored = localStorage.getItem('fitness_coach_advice_tags');
+            if (stored) customCoachAdviceTags = JSON.parse(stored);
+        } catch(e) {
+            console.error("無法讀取叮嚀標籤", e);
+            customCoachAdviceTags = [];
+        }
+    }
+
+    function saveCustomCoachAdviceTagsToStorage() {
+        try {
+            localStorage.setItem('fitness_coach_advice_tags', JSON.stringify(customCoachAdviceTags));
+        } catch(e) {
+            console.error("無法寫入叮嚀標籤", e);
+        }
+    }
+
+    function renderDiseaseTags() {
+        const container = document.getElementById('diseaseTagsContainer');
+        container.innerHTML = '';
+        commonDiseasesList.forEach(disease => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-2 py-1 bg-morandi-bg hover:bg-morandi-primary/10 hover:text-morandi-primary text-gray-600 rounded-lg text-[11px] border border-morandi-border transition-all';
+            btn.innerText = `+ ${disease}`;
+            btn.onclick = () => toggleDiseaseTag(disease);
+            container.appendChild(btn);
+        });
+    }
+
+    function toggleDiseaseTag(disease) {
+        const textarea = document.getElementById('medicalHistory');
+        let currentText = textarea.value.trim();
+        
+        if (currentText === '無過去病史' || currentText === '無特殊病史' || currentText === '無特殊病史說明') {
+            textarea.value = disease;
+            return;
+        }
+
+        if (currentText.includes(disease)) {
+            let parts = currentText.split(/[、,，\n]\s*/).filter(p => p && p !== disease);
+            textarea.value = parts.length > 0 ? parts.join('、') : '無過去病史';
+        } else {
+            if (currentText) {
+                textarea.value = currentText + '、' + disease;
+            } else {
+                textarea.value = disease;
+            }
+        }
+    }
+
+    function renderCoachAdviceTags() {
+        const container = document.getElementById('adviceTagsContainer');
+        container.innerHTML = '';
+
+        defaultCoachAdviceTags.forEach(tag => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-2 py-1 bg-white hover:bg-morandi-secondary/10 hover:text-morandi-secondary text-gray-600 rounded-lg text-[11px] border border-morandi-border transition-all shrink-0';
+            btn.innerText = `+ ${tag}`;
+            btn.onclick = () => addAdviceToText(tag);
+            container.appendChild(btn);
+        });
+
+        customCoachAdviceTags.forEach((tag, index) => {
+            const btnWrapper = document.createElement('div');
+            btnWrapper.className = 'relative group flex items-center shrink-0';
+            
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-2 py-1 bg-morandi-secondary/10 hover:bg-morandi-secondary/20 text-morandi-secondary font-medium rounded-lg text-[11px] border border-morandi-secondary/30 transition-all flex items-center gap-1';
+            btn.innerText = `+ ${tag}`;
+            btn.onclick = () => addAdviceToText(tag);
+
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'ml-1 text-gray-400 hover:text-morandi-danger p-0.5 rounded-full transition-colors';
+            delBtn.title = '刪除此自訂標籤';
+            delBtn.innerHTML = `<i data-lucide="x" class="w-3 h-3"></i>`;
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteCustomAdviceTag(index);
+            };
+
+            btnWrapper.appendChild(btn);
+            btnWrapper.appendChild(delBtn);
+            container.appendChild(btnWrapper);
+        });
+
+        lucide.createIcons();
+    }
+
+    function addAdviceToText(tagText) {
+        const textarea = document.getElementById('homeworkText');
+        let currentText = textarea.value.trim();
+
+        if (currentText.includes(tagText)) return;
+
+        if (!currentText) {
+            textarea.value = `• ${tagText}`;
+        } else {
+            textarea.value = currentText + `\n• ${tagText}`;
+        }
+    }
+
+    function openAddCoachAdviceModal() {
+        document.getElementById('addCoachAdviceModal').classList.remove('hidden');
+    }
+
+    function closeAddCoachAdviceModal() {
+        document.getElementById('addCoachAdviceModal').classList.add('hidden');
+    }
+
+    function saveNewCoachAdviceTag() {
+        const input = document.getElementById('newAdviceText');
+        const text = input.value.trim();
+        if (!text) {
+            alert('請輸入叮嚀標籤內容！');
+            return;
+        }
+
+        if (!customCoachAdviceTags.includes(text) && !defaultCoachAdviceTags.includes(text)) {
+            customCoachAdviceTags.push(text);
+            saveCustomCoachAdviceTagsToStorage();
+            renderCoachAdviceTags();
+        }
+
+        input.value = '';
+        closeAddCoachAdviceModal();
+    }
+
+    function deleteCustomAdviceTag(index) {
+        if (confirm('確定要移除此叮嚀標籤嗎？')) {
+            customCoachAdviceTags.splice(index, 1);
+            saveCustomCoachAdviceTagsToStorage();
+            renderCoachAdviceTags();
+        }
+    }
+
+    function renderClientQuickButtons() {
+        const container = document.getElementById('clientQuickButtons');
+        container.innerHTML = '';
+        
+        clientDatabase.forEach(client => {
+            const btn = document.createElement('button');
+            btn.className = 'px-2 py-1.5 bg-morandi-bg hover:bg-morandi-light text-morandi-dark rounded-xl text-xs border border-morandi-border transition-all flex flex-col items-center justify-center gap-0.5 shadow-2xs hover:border-morandi-primary';
+            btn.innerHTML = `<span class="font-bold text-morandi-primary truncate w-full text-center">${client.name}</span><span class="text-[10px] text-gray-400">${client.ageGender ? client.ageGender.split('/')[0] : ''}</span>`;
+            btn.onclick = () => selectClient(client.id);
+            container.appendChild(btn);
+        });
+    }
+
+    function selectClient(clientId) {
+        const client = clientDatabase.find(c => c.id === clientId);
+        if (!client) return;
+
+        document.getElementById('clientName').value = client.name;
+        document.getElementById('clientAgeGender').value = client.ageGender;
+        document.getElementById('coachName').value = client.coach;
+        document.getElementById('medicalHistory').value = client.medicalHistory;
+        document.getElementById('focusPoint').value = client.focusPoint;
+        document.getElementById('homeworkText').value = client.homework;
+
+        selectedExercises = JSON.parse(JSON.stringify(client.defaultExercises || []));
+        renderExercises();
+    }
+
+    function openAddClientModal() { document.getElementById('addClientModal').classList.remove('hidden'); }
+    function closeAddClientModal() { document.getElementById('addClientModal').classList.add('hidden'); }
+    
+    function saveNewClient() {
+        const name = document.getElementById('newClientName').value.trim();
+        if (!name) {
+            alert('請輸入個案姓名！');
+            return;
+        }
+
+        const newClient = {
+            id: 'client_' + Date.now(),
+            name: name,
+            ageGender: document.getElementById('newClientAgeGender').value || '未填寫',
+            coach: document.getElementById('newClientCoach').value || '小凱教練',
+            medicalHistory: document.getElementById('newClientMedical').value || '無過去病史',
+            focusPoint: document.getElementById('newClientFocus').value || '功能性肌力強化',
+            homework: '• 運動後請多補充水分與休息\n• 保持良好姿勢習慣',
+            defaultExercises: []
+        };
+
+        clientDatabase.push(newClient);
+        saveClientsToStorage(); // 寫入 LocalStorage 持久記憶
+        renderClientQuickButtons();
+        selectClient(newClient.id);
+        closeAddClientModal();
+
+        document.getElementById('newClientName').value = '';
+        document.getElementById('newClientAgeGender').value = '';
+        document.getElementById('newClientMedical').value = '';
+        document.getElementById('newClientFocus').value = '';
+    }
+
+    function addGDriveLink() {
+        const input = document.getElementById('gdriveInput');
+        const url = input.value.trim();
+        if (!url) return;
+
+        let previewSrc = '';
+        const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            previewSrc = `https://lh3.googleusercontent.com/d/${fileIdMatch[1]}=s400`;
+        }
+
+        const photoObj = {
+            id: Date.now() + Math.random(),
+            src: previewSrc || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&auto=format&fit=crop&q=60',
+            isGDrive: true,
+            originalUrl: url
+        };
+
+        if (previewSrc) {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = function() {
+                photoObj.imgElement = img;
+                photoObj.aspectRatio = img.width / img.height;
+                uploadedPhotos.push(photoObj);
+                renderPhotosGrid();
+            };
+            img.onerror = function() {
+                uploadedPhotos.push(photoObj);
+                renderPhotosGrid();
+            };
+            img.src = previewSrc;
+        } else {
+            uploadedPhotos.push(photoObj);
+            renderPhotosGrid();
+        }
+
+        gdriveLinks.push(url);
+        input.value = '';
+    }
+
+    function handleMultiplePhotos(event) {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    uploadedPhotos.push({
+                        id: Date.now() + Math.random(),
+                        src: e.target.result,
+                        imgElement: img,
+                        aspectRatio: img.width / img.height,
+                        isGDrive: false
+                    });
+                    renderPhotosGrid();
+                    if (!document.getElementById('canvasModal').classList.contains('hidden')) {
+                        drawCanvas();
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        event.target.value = '';
+    }
+
+    function removePhoto(photoId) {
+        const photo = uploadedPhotos.find(p => p.id === photoId);
+        if (photo && photo.originalUrl) {
+            gdriveLinks = gdriveLinks.filter(l => l !== photo.originalUrl);
+        }
+        uploadedPhotos = uploadedPhotos.filter(p => p.id !== photoId);
+        renderPhotosGrid();
+        if (!document.getElementById('canvasModal').classList.contains('hidden')) {
+            drawCanvas();
+        }
+    }
+
+    function renderPhotosGrid() {
+        const grid = document.getElementById('photosGrid');
+        document.getElementById('photoCount').innerText = `${uploadedPhotos.length} 張`;
+        grid.innerHTML = '';
+
+        uploadedPhotos.forEach(photo => {
+            const item = document.createElement('div');
+            item.className = 'relative group aspect-square rounded-lg overflow-hidden border border-morandi-border bg-black/5 flex items-center justify-center';
+            item.innerHTML = `
+                <img src="${photo.src}" class="w-full h-full object-cover">
+                ${photo.isGDrive ? `<span class="absolute bottom-1 left-1 bg-morandi-primary/90 text-white text-[9px] px-1.5 py-0.5 rounded shadow">Drive</span>` : ''}
+                <button onclick="removePhoto(${photo.id})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-morandi-danger transition-all">
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+            `;
+            grid.appendChild(item);
+        });
+        lucide.createIcons();
+    }
+
+    function switchCategory(cat) {
+        currentCategory = cat;
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            if (btn.dataset.cat === cat) {
+                btn.classList.add('bg-morandi-primary', 'text-white', 'shadow-sm');
+                btn.classList.remove('text-gray-600');
+            } else {
+                btn.classList.remove('bg-morandi-primary', 'text-white', 'shadow-sm');
+                btn.classList.add('text-gray-600');
+            }
+        });
+        renderQuickButtons(cat);
+    }
+
+    function renderQuickButtons(cat) {
+        const container = document.getElementById('quickExerciseButtons');
+        container.innerHTML = '';
+        
+        const baseItems = baseExerciseDatabase[cat] || [];
+        baseItems.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'px-2.5 py-1.5 bg-morandi-card hover:bg-morandi-light text-morandi-dark rounded-lg text-xs border border-morandi-border transition-all flex items-center gap-1 shadow-2xs';
+            btn.innerHTML = `<i data-lucide="plus" class="w-3 h-3 text-morandi-primary"></i> ${item.name}`;
+            btn.onclick = () => addExercise(item);
+            container.appendChild(btn);
+        });
+
+        const customItems = customCategoryDatabase[cat] || [];
+        customItems.forEach((item, index) => {
+            const btnWrapper = document.createElement('div');
+            btnWrapper.className = 'relative group flex items-center';
+            
+            const btn = document.createElement('button');
+            btn.className = 'px-2.5 py-1.5 bg-morandi-primary/10 hover:bg-morandi-primary/20 text-morandi-primary rounded-lg text-xs border border-morandi-primary/30 transition-all flex items-center gap-1 shadow-2xs font-medium';
+            btn.innerHTML = `<i data-lucide="bookmark" class="w-3 h-3 text-morandi-primary"></i> ${item.name}`;
+            btn.onclick = () => addExercise(item);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'ml-1 text-gray-400 hover:text-morandi-danger p-1 rounded-full transition-colors';
+            delBtn.title = '刪除此自訂動作選項';
+            delBtn.innerHTML = `<i data-lucide="x" class="w-3 h-3"></i>`;
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteCustomCategoryItem(cat, index);
+            };
+
+            btnWrapper.appendChild(btn);
+            btnWrapper.appendChild(delBtn);
+            container.appendChild(btnWrapper);
+        });
+
+        lucide.createIcons();
+    }
+
+    function openAddCategoryItemModal() {
+        document.getElementById('modalCategoryTitle').innerText = categoryNames[currentCategory] || '當前類別';
+        document.getElementById('addCategoryItemModal').classList.remove('hidden');
+    }
+
+    function closeAddCategoryItemModal() {
+        document.getElementById('addCategoryItemModal').classList.add('hidden');
+    }
+
+    function saveCategoryItem() {
+        const name = document.getElementById('newItemName').value.trim();
+        if (!name) {
+            alert('請輸入動作名稱！');
+            return;
+        }
+
+        const newItem = {
+            id: 'custom_' + Date.now(),
+            name: name,
+            sets: document.getElementById('newItemSets').value || '4',
+            reps: document.getElementById('newItemReps').value || '10次',
+            loadType: document.getElementById('newItemLoadType').value || '抗阻力',
+            loadValue: document.getElementById('newItemLoadValue').value || '',
+            note: document.getElementById('newItemNote').value || ''
+        };
+
+        if (!customCategoryDatabase[currentCategory]) {
+            customCategoryDatabase[currentCategory] = [];
+        }
+        customCategoryDatabase[currentCategory].push(newItem);
+
+        saveCustomExercisesToStorage();
+        renderQuickButtons(currentCategory);
+        closeAddCategoryItemModal();
+
+        document.getElementById('newItemName').value = '';
+        document.getElementById('newItemLoadValue').value = '';
+        document.getElementById('newItemNote').value = '';
+    }
+
+    function deleteCustomCategoryItem(cat, index) {
+        if (confirm('確定要移除此自訂動作選項嗎？')) {
+            customCategoryDatabase[cat].splice(index, 1);
+            saveCustomExercisesToStorage();
+            renderQuickButtons(cat);
+        }
+    }
+
+    function addExercise(item) {
+        selectedExercises.push({
+            id: Date.now() + Math.random(),
+            name: item.name,
+            sets: item.sets || "4",
+            reps: item.reps || "10次",
+            loadType: item.loadType || "自重",
+            loadValue: item.loadValue || "徒手",
+            note: item.note || ""
+        });
+        renderExercises();
+    }
+
+    function addCustomExercise() {
+        selectedExercises.push({
+            id: Date.now() + Math.random(),
+            name: "自訂訓練項目",
+            sets: "4",
+            reps: "10次",
+            loadType: "自重",
+            loadValue: "徒手",
+            note: "動作提示與說明..."
+        });
+        renderExercises();
+    }
+
+    function removeExercise(id) {
+        selectedExercises = selectedExercises.filter(ex => ex.id !== id);
+        renderExercises();
+    }
+
+    function updateExercise(id, field, value) {
+        const ex = selectedExercises.find(item => item.id === id);
+        if (ex) {
+            ex[field] = value;
+        }
+    }
+
+    function renderExercises() {
+        const container = document.getElementById('selectedExercisesList');
+        document.getElementById('exerciseCount').innerText = selectedExercises.length;
+        container.innerHTML = '';
+
+        if (selectedExercises.length === 0) {
+            container.innerHTML = `<div class="text-center py-8 text-gray-400 text-xs border border-dashed border-morandi-border rounded-xl">尚未選擇運動項目，請從上方選擇或新增</div>`;
+            return;
+        }
+
+        selectedExercises.forEach((ex, index) => {
+            const card = document.createElement('div');
+            card.className = 'bg-morandi-bg/60 p-3.5 rounded-xl border border-morandi-border space-y-2 relative transition-all hover:border-morandi-primary/50';
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-center gap-2">
+                    <div class="flex items-center gap-2 flex-1">
+                        <span class="w-5 h-5 rounded-full bg-morandi-primary/20 text-morandi-primary text-xs font-bold flex items-center justify-center shrink-0">${index + 1}</span>
+                        <input type="text" value="${ex.name}" onchange="updateExercise(${ex.id}, 'name', this.value)" class="font-bold text-sm text-morandi-dark bg-transparent border-b border-transparent hover:border-morandi-border focus:border-morandi-primary focus:bg-white rounded px-1 w-full focus:outline-none">
+                    </div>
+                    <button onclick="removeExercise(${ex.id})" class="text-gray-400 hover:text-morandi-danger p-1 rounded-lg transition-colors">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-12 gap-2 text-xs">
+                    <div class="col-span-3">
+                        <label class="text-[10px] text-gray-400 block mb-0.5">組數 (Sets)</label>
+                        <input type="text" value="${ex.sets}" onchange="updateExercise(${ex.id}, 'sets', this.value)" class="w-full bg-white border border-morandi-border rounded-md px-2 py-1 text-xs focus:outline-none focus:border-morandi-primary">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="text-[10px] text-gray-400 block mb-0.5">次數/時間 (Reps)</label>
+                        <input type="text" value="${ex.reps}" onchange="updateExercise(${ex.id}, 'reps', this.value)" class="w-full bg-white border border-morandi-border rounded-md px-2 py-1 text-xs focus:outline-none focus:border-morandi-primary">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="text-[10px] text-gray-400 block mb-0.5">負重模式</label>
+                        <select onchange="updateExercise(${ex.id}, 'loadType', this.value)" class="w-full bg-white border border-morandi-border rounded-md px-1.5 py-1 text-xs focus:outline-none focus:border-morandi-primary">
+                            <option value="自重" ${ex.loadType === '自重' ? 'selected' : ''}>自重</option>
+                            <option value="抗阻力" ${ex.loadType === '抗阻力' ? 'selected' : ''}>抗阻力</option>
+                            <option value="輔助" ${ex.loadType === '輔助' ? 'selected' : ''}>輔助</option>
+                        </select>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="text-[10px] text-gray-400 block mb-0.5">重量/工具細節</label>
+                        <input type="text" value="${ex.loadValue || ''}" placeholder="如 6kg" onchange="updateExercise(${ex.id}, 'loadValue', this.value)" class="w-full bg-white border border-morandi-border rounded-md px-2 py-1 text-xs focus:outline-none focus:border-morandi-primary">
+                    </div>
+                </div>
+
+                <div>
+                    <input type="text" value="${ex.note || ''}" placeholder="指導要點 / 注意事項..." onchange="updateExercise(${ex.id}, 'note', this.value)" class="w-full bg-white border border-morandi-border rounded-md px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-morandi-primary">
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        lucide.createIcons();
+    }
+
+    function autoImportHomework() {
+        if (selectedExercises.length === 0) {
+            alert('目前尚未選擇任何今日運動項目！');
+            return;
+        }
+
+        let homeworkList = "【今日訓練提醒與自主練習】\n";
+        selectedExercises.forEach((ex, i) => {
+            const loadStr = ex.loadValue ? ` (${ex.loadType}-${ex.loadValue})` : ` (${ex.loadType})`;
+            homeworkList += `• ${ex.name}：每日 ${ex.sets} 組，每組 ${ex.reps}${loadStr}`;
+            if (ex.note) {
+                homeworkList += ` - 提示: ${ex.note}`;
+            }
+            homeworkList += "\n";
+        });
+        homeworkList += "\n※ 練習時請注意周遭環境與支撐物安全，若感受不適請隨時休息。";
+
+        document.getElementById('homeworkText').value = homeworkList;
+    }
+
+    function resetForm() {
+        if (confirm("確定要清空所有已填寫的資料嗎？")) {
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientAgeGender').value = '';
+            document.getElementById('coachName').value = '';
+            document.getElementById('medicalHistory').value = '';
+            document.getElementById('focusPoint').value = '';
+            document.getElementById('homeworkText').value = '';
+            document.getElementById('gdriveInput').value = '';
+            uploadedPhotos = [];
+            gdriveLinks = [];
+            renderPhotosGrid();
+            selectedExercises = [];
+            renderExercises();
+        }
+    }
+
+    function generateLineReport() {
+        const name = document.getElementById('clientName').value || '個案';
+        const ageGender = document.getElementById('clientAgeGender').value || '';
+        const date = document.getElementById('recordDate').value || '';
+        const coach = document.getElementById('coachName').value || '教練';
+        const medical = document.getElementById('medicalHistory').value || '無過去病史';
+        const focus = document.getElementById('focusPoint').value || '一般維持';
+        const homework = document.getElementById('homeworkText').value || '無叮嚀說明';
+
+        let exText = "";
+        selectedExercises.forEach((ex, index) => {
+            const loadDetail = ex.loadValue ? `${ex.loadType} (${ex.loadValue})` : ex.loadType;
+            exText += `${index + 1}. ${ex.name}\n   └ ${ex.sets}組 | ${ex.reps} | ${loadDetail}${ex.note ? ' (' + ex.note + ')' : ''}\n`;
+        });
+        if (!exText) exText = "今日無登錄運動項目\n";
+
+        const currentInputUrl = document.getElementById('gdriveInput').value.trim();
+        let allLinks = [...gdriveLinks];
+        if (currentInputUrl && !allLinks.includes(currentInputUrl)) {
+            allLinks.push(currentInputUrl);
+        }
+
+        let driveText = "";
+        if (allLinks.length > 0) {
+            driveText = `\n📁 【雲端相簿/側拍連結】\n` + allLinks.map(l => `• ${l}`).join('\n') + `\n`;
+        }
+
+        const report = `📋 【居家到府體適能 - 課後訓練紀錄表】\n` +
+            `----------------------------------\n` +
+            `👤 個案稱呼：${name} (${ageGender})\n` +
+            `📅 訓練日期：${date}\n` +
+            `🧢 指導教練：${coach}\n` +
+            `🏥 過去病史：${medical}\n` +
+            `🎯 課表重點：${focus}\n\n` +
+            `🏋️‍♂️ 【今日訓練項目】\n${exText}\n` +
+            `💛 【教練友善叮嚀】\n${homework}\n` + driveText +
+            `----------------------------------\n` +
+            `感謝您的努力與配合！如有任何問題請隨時與教練聯繫。💪`;
+
+        document.getElementById('lineReportText').value = report;
+        document.getElementById('lineReportModal').classList.remove('hidden');
+    }
+
+    function closeLineModal() {
+        document.getElementById('lineReportModal').classList.add('hidden');
+    }
+
+    function copyLineReport() {
+        const text = document.getElementById('lineReportText');
+        text.select();
+        document.execCommand('copy');
+        alert('LINE 課後紀錄已成功複製到剪貼簿！');
+    }
+
+    function openCanvasModal() {
+        document.getElementById('canvasModal').classList.remove('hidden');
+        drawCanvas();
+    }
+
+    function closeCanvasModal() {
+        document.getElementById('canvasModal').classList.add('hidden');
+    }
+
+    function changeCanvasTheme(themeName) {
+        currentCanvasTheme = themeName;
+        ['classic', 'sage', 'warm'].forEach(t => {
+            const btn = document.getElementById(`themeBtn-${t}`);
+            if (t === themeName) {
+                btn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium border border-morandi-primary bg-morandi-primary text-white transition-all';
+            } else {
+                btn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium text-gray-600 bg-white border border-morandi-border transition-all hover:bg-gray-50';
+            }
+        });
+        drawCanvas();
+    }
+
+    function drawCanvas() {
+        const canvas = document.getElementById('recordCanvas');
+        const ctx = canvas.getContext('2d');
+        const palette = themePalettes[currentCanvasTheme] || themePalettes.classic;
+
+        // 清除與背景
+        ctx.fillStyle = '#F8F6F0';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 外框裝飾
+        ctx.strokeStyle = palette.cardBorder;
+        ctx.lineWidth = 12;
+        ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
+
+        // --- 1. Header Banner ---
+        const headerH = 200;
+        ctx.fillStyle = palette.headerBg;
+        ctx.fillRect(0, 0, canvas.width, headerH);
+
+        drawRoundedRect(ctx, 48, 40, 220, 42, 21, 'rgba(255,255,255,0.2)', 'transparent');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 22px "Noto Sans TC"';
+        ctx.fillText('居家到府體適能', 74, 68);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 52px "Noto Sans TC"';
+        ctx.fillText('個 案 運 動 訓 練 記 錄', 48, 138);
+        
+        ctx.font = 'bold 22px "Noto Sans TC"';
+        ctx.fillStyle = palette.headerSub;
+        ctx.fillText('HOME CARE FITNESS & REHABILITATION RECORD', 48, 175);
+
+        // --- 2. 基本資料卡片 ---
+        const infoCardY = 230;
+        const infoCardH = 310;
+        drawRoundedRect(ctx, 40, infoCardY, 1000, infoCardH, 28, palette.cardBg, palette.cardBorder);
+
+        const name = document.getElementById('clientName').value || '未填寫';
+        const ageGender = document.getElementById('clientAgeGender').value || '';
+        const date = document.getElementById('recordDate').value || '';
+        const coach = document.getElementById('coachName').value || '未填寫';
+        const medical = document.getElementById('medicalHistory').value || '無過去病史';
+        const focus = document.getElementById('focusPoint').value || '一般身體功能維持';
+
+        ctx.fillStyle = palette.primaryText;
+        ctx.font = '800 42px "Noto Sans TC"';
+        ctx.fillText(`個案：${name}`, 76, infoCardY + 70);
+
+        if (ageGender) {
+            drawRoundedRect(ctx, 76 + ctx.measureText(`個案：${name}`).width + 20, infoCardY + 32, 210, 48, 14, palette.badgeBg, 'transparent');
+            ctx.fillStyle = palette.badgeText;
+            ctx.font = 'bold 24px "Noto Sans TC"';
+            ctx.fillText(ageGender, 76 + ctx.measureText(`個案：${name}`).width + 40, infoCardY + 65);
+        }
+
+        ctx.fillStyle = '#718096';
+        ctx.font = 'bold 28px "Noto Sans TC"';
+        ctx.fillText(`📅 ${date}`, 740, infoCardY + 68);
+
+        ctx.strokeStyle = palette.cardBorder;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(76, infoCardY + 98);
+        ctx.lineTo(1004, infoCardY + 98);
+        ctx.stroke();
+
+        ctx.fillStyle = palette.primaryText;
+        ctx.font = '28px "Noto Sans TC"';
+        ctx.fillText(`🧢 指導教練：${coach}`, 76, infoCardY + 142);
+
+        ctx.fillStyle = palette.accentText;
+        ctx.font = 'bold 28px "Noto Sans TC"';
+        ctx.fillText(`🏥 過去病史：${medical}`, 76, infoCardY + 194);
+
+        ctx.fillStyle = palette.primaryText;
+        ctx.font = 'bold 29px "Noto Sans TC"';
+        ctx.fillText(`🎯 訓練重點：${focus}`, 76, infoCardY + 250);
+
+        let currentY = infoCardY + infoCardH + 30;
+
+        // --- 3. 照片區域 ---
+        const validPhotos = uploadedPhotos.filter(p => p.imgElement);
+        if (validPhotos.length > 0) {
+            const photoCardH = 340;
+            drawRoundedRect(ctx, 40, currentY, 1000, photoCardH, 28, palette.cardBg, palette.cardBorder);
+            
+            const photoCount = Math.min(validPhotos.length, 3);
+            const gap = 20;
+            const containerPadding = 20;
+            const totalWidthAvailable = 1000 - (containerPadding * 2) - ((photoCount - 1) * gap);
+            const slotWidth = totalWidthAvailable / photoCount;
+            const slotHeight = photoCardH - (containerPadding * 2);
+
+            validPhotos.slice(0, 3).forEach((photo, idx) => {
+                const x = 40 + containerPadding + idx * (slotWidth + gap);
+                const y = currentY + containerPadding;
+
+                const img = photo.imgElement;
+                let drawW = slotWidth;
+                let drawH = slotWidth / photo.aspectRatio;
+
+                if (drawH > slotHeight) {
+                    drawH = slotHeight;
+                    drawW = slotHeight * photo.aspectRatio;
+                }
+
+                const offsetX = x + (slotWidth - drawW) / 2;
+                const offsetY = y + (slotHeight - drawH) / 2;
+
+                ctx.save();
+                drawRoundedRectPath(ctx, x, y, slotWidth, slotHeight, 18);
+                ctx.clip();
+                
+                ctx.fillStyle = '#EFECE6';
+                ctx.fillRect(x, y, slotWidth, slotHeight);
+
+                try {
+                    ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+                } catch(e) {
+                    console.log('Canvas image draw bypass');
+                }
+                ctx.restore();
+
+                drawRoundedRect(ctx, x, y, slotWidth, slotHeight, 18, 'transparent', 'rgba(0,0,0,0.06)');
+            });
+
+            currentY += photoCardH + 30;
+        }
+
+        // --- 4. 運動項目與教練友善叮嚀 ---
+        drawExerciseAndHomework2K(ctx, currentY, palette);
+    }
+
+    function drawExerciseAndHomework2K(ctx, startY, palette) {
+        const remainingHeight = 1840 - startY;
+        const exHeight = Math.min(680, Math.max(480, remainingHeight * 0.58));
+        
+        drawRoundedRect(ctx, 40, startY, 1000, exHeight, 28, palette.cardBg, palette.cardBorder);
+
+        ctx.fillStyle = palette.headerBg;
+        ctx.font = '800 36px "Noto Sans TC"';
+        ctx.fillText('🏋️‍♂️ 今日訓練項目紀錄', 76, startY + 68);
+
+        let itemY = startY + 115;
+        if (selectedExercises.length === 0) {
+            ctx.fillStyle = '#A0AEC0';
+            ctx.font = '30px "Noto Sans TC"';
+            ctx.fillText('本日無登錄訓練項目', 76, itemY + 40);
+        } else {
+            const displayLimit = 4;
+            const cardHeight = 110;
+
+            selectedExercises.slice(0, displayLimit).forEach((ex, idx) => {
+                drawRoundedRect(ctx, 64, itemY, 952, cardHeight, 18, '#F6F4EE', 'transparent');
+
+                drawRoundedRect(ctx, 84, itemY + 25, 42, 42, 21, palette.headerBg, 'transparent');
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 22px "Noto Sans TC"';
+                ctx.fillText(`${idx + 1}`, idx + 1 >= 10 ? 94 : 99, itemY + 54);
+
+                ctx.fillStyle = palette.primaryText;
+                ctx.font = '800 30px "Noto Sans TC"';
+                ctx.fillText(ex.name, 144, itemY + 48);
+
+                ctx.fillStyle = palette.badgeText;
+                ctx.font = 'bold 25px "Noto Sans TC"';
+                const loadStr = ex.loadValue ? `${ex.loadType} (${ex.loadValue})` : ex.loadType;
+                const detailText = `組數：${ex.sets}組  |  次數：${ex.reps}  |  強度：${loadStr}`;
+                ctx.fillText(detailText, 144, itemY + 88);
+
+                itemY += cardHeight + 18;
+            });
+
+            if (selectedExercises.length > displayLimit) {
+                ctx.fillStyle = '#718096';
+                ctx.font = 'bold 24px "Noto Sans TC"';
+                ctx.fillText(`...另有 ${selectedExercises.length - displayLimit} 項訓練內容未於圖卡完全列出`, 76, itemY + 10);
+            }
+        }
+
+        // --- 5. 教練友善叮嚀 ---
+        const hwStartY = startY + exHeight + 26;
+        const hwHeight = 1850 - hwStartY;
+        drawRoundedRect(ctx, 40, hwStartY, 1000, hwHeight, 28, palette.cardBg, palette.cardBorder);
+
+        ctx.fillStyle = palette.homeworkHeader;
+        ctx.font = '800 34px "Noto Sans TC"';
+        ctx.fillText('💛 教練友善叮嚀', 76, hwStartY + 62);
+
+        ctx.fillStyle = palette.primaryText;
+        ctx.font = '28px "Noto Sans TC"';
+        
+        const homeworkLines = wrapText(ctx, document.getElementById('homeworkText').value || '無叮嚀說明', 900);
+        let hwLineY = hwStartY + 116;
+        
+        homeworkLines.slice(0, 5).forEach(line => {
+            ctx.fillText(line, 76, hwLineY);
+            hwLineY += 42; 
+        });
+
+        ctx.fillStyle = '#A0AEC0';
+        ctx.font = 'bold 24px "Noto Sans TC"';
+        ctx.fillText('居家到府體適能團隊 關心您的健康與活力 💪', 320, 1895);
+    }
+
+    function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
+        ctx.beginPath();
+        drawRoundedRectPath(ctx, x, y, width, height, radius);
+        ctx.closePath();
+
+        if (fill && fill !== 'transparent') {
+            ctx.fillStyle = fill;
+            ctx.fill();
+        }
+        if (stroke && stroke !== 'transparent') {
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
+    }
+
+    function drawRoundedRectPath(ctx, x, y, width, height, radius) {
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+    }
+
+    function wrapText(ctx, text, maxWidth) {
+        const lines = [];
+        const rawLines = text.split('\n');
+        
+        rawLines.forEach(rawLine => {
+            let currentLine = '';
+            for (let i = 0; i < rawLine.length; i++) {
+                const char = rawLine[i];
+                const testLine = currentLine + char;
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && i > 0) {
+                    lines.push(currentLine);
+                    currentLine = char;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            lines.push(currentLine);
+        });
+        return lines;
+    }
+
+    function downloadCanvasImage() {
+        const canvas = document.getElementById('recordCanvas');
+        const link = document.createElement('a');
+        const name = document.getElementById('clientName').value || '個案';
+        const date = document.getElementById('recordDate').value || '日期';
+        
+        link.download = `體適能訓練紀錄_${name}_${date}.png`;
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+    }
+</script>
+</body>
+</html>
